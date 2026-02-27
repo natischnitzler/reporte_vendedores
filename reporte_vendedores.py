@@ -12,6 +12,7 @@ import requests
 import re
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
+from email.mime.base import MIMEBase
 import pandas as pd
 import xmlrpc.client
 import tempfile
