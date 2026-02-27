@@ -9,7 +9,8 @@ Lunes y Miércoles a las 11:00 AM hora Chile
 import os
 import sys
 import requests
-from openpyxl import load_workbook 
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 import pandas as pd
 import xmlrpc.client
 import tempfile
