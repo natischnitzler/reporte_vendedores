@@ -26,7 +26,13 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install requests 
-      
+
+      - name: Verificar imports
+        run: |
+          head -20 reporte_vendedores.py
+          echo "---"
+          grep -n "import requests" reporte_vendedores.py || echo "REQUESTS NO ENCONTRADO"
+ 
       - name: Ejecutar reporte
         env:
           ODOO3_URL: ${{ secrets.ODOO3_URL }}
