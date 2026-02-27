@@ -8,6 +8,7 @@ Lunes y Miércoles a las 11:00 AM hora Chile
 
 import os
 import sys
+import requests
 import pandas as pd
 import xmlrpc.client
 import tempfile
