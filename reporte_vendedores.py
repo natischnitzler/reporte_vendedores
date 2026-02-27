@@ -62,8 +62,8 @@ VENDEDORES = [
     {"name": "Estrella Llanos",      "email": "estrellallanos@temponovo.cl",      "id": None},
 ]
 
-CC_FIJOS = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
-RESUMEN_EMAILS = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
+CC_FIJOS = ["natalia@temponovo.cl", "admin@temponovo.cl"]
+RESUMEN_EMAILS = ["natalia@temponovo.cl", "admin@temponovo.cl"]
 
 # Nombres cortos para subject del email
 NOMBRES_CORTOS = {
