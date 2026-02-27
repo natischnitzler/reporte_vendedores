@@ -24,7 +24,7 @@ jobs:
       
       - name: Instalar dependencias
         run: |
-          pip install pandas xmlrpc openpyxl reportlab
+          pip install -r requirements.txt
       
       - name: Ejecutar reporte
         env:
