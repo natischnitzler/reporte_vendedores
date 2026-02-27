@@ -49,16 +49,17 @@ SMTP_USER = get_secret("SMTP_USER")
 SMTP_PASS = get_secret("SMTP_PASS")
 
 # Configuración vendedores
+
 VENDEDORES = [
-    {"name": "ALDO CAYAZZO",         "odoo_id": 5210, "email": "aldocayazzo@hotmail.com"},
-    {"name": "ALEJANDRO STARK",      "odoo_id": 5211, "email": "alejandro@temponovo.cl"},
-    {"name": "FRANCISCO BERCZELLER", "odoo_id": 5213, "email": ""},
-    {"name": "FRANCISCO CORNEJO",    "odoo_id": 5214, "email": "francisco.cornejo@temponovo.cl"},
-    {"name": "FREDY ARCHILE",        "odoo_id": 5216, "email": "fredy@temponovo.cl"},
-    {"name": "MAX LEVY",             "odoo_id": 5217, "email": "max@temponovo.cl"},
-    {"name": "OFICINA",              "odoo_id": 5218, "email": "oficina@temponovo.cl"},
-    {"name": "PEDRO GODOY",          "odoo_id": 5219, "email": "pedro@temponovo.cl"},
-    {"name": "Estrella Llanos",      "odoo_id": None, "email": "estrella@temponovo.cl"},
+    {"name": "ALDO CAYAZZO",         "email": "aldocayazzo@hotmail.com",                "id": 5210},
+    {"name": "ALEJANDRO STARK",      "email": "starksolla@gmail.com",             "id": 5211},
+    {"name": "FRANCISCO BERCZELLER", "email": None,                               "id": 5213},
+    {"name": "FRANCISCO CORNEJO",    "email": "tatocornejo@yahoo.es",             "id": 5214},
+    {"name": "FREDY ARCHILE",        "email": "freddynaw@gmail.com",              "id": 5216},
+    {"name": "MAX LEVY",             "email": "levy.max@gmail.com",               "id": 5217},
+    {"name": "OFICINA",              "email": "estrellallanos@temponovo.cl",      "id": 5218},
+    {"name": "PEDRO GODOY",          "email": "pedro@aviv.cl", "id": 5219},
+    {"name": "Estrella Llanos",      "email": "estrellallanos@temponovo.cl",      "id": None},
 ]
 
 CC_FIJOS = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
