@@ -1,0 +1,49 @@
+name: Reporte Semanal Vendedores
+
+on:
+  # Lunes y miércoles a las 11:00 AM hora Chile (14:00 UTC en verano, 15:00 UTC en invierno)
+  # Usamos 15:00 UTC para cubrir ambos casos
+  schedule:
+    - cron: '0 15 * * 1,3'  # Lunes (1) y Miércoles (3) a las 15:00 UTC
+  
+  # También permite ejecución manual desde GitHub
+  workflow_dispatch:
+
+jobs:
+  enviar-reportes:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Instalar dependencias
+        run: |
+          pip install pandas xmlrpc openpyxl reportlab
+      
+      - name: Ejecutar reporte
+        env:
+          ODOO3_URL: ${{ secrets.ODOO3_URL }}
+          ODOO3_DB: ${{ secrets.ODOO3_DB }}
+          ODOO3_USER: ${{ secrets.ODOO3_USER }}
+          ODOO3_PASS: ${{ secrets.ODOO3_PASS }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          python reporte_vendedores.py
+      
+      - name: Notificar resultado
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ Reporte enviado exitosamente"
+          else
+            echo "❌ Error al enviar reporte"
+          fi
