@@ -17,9 +17,10 @@ import pandas as pd
 import xmlrpc.client
 import tempfile
 import smtplib
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from io import BytesIO
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
