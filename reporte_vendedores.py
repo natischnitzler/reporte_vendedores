@@ -50,7 +50,7 @@ SMTP_PASS = get_secret("SMTP_PASS")
 
 # Configuración vendedores
 VENDEDORES = [
-    {"name": "ALDO CAYAZZO",         "odoo_id": 5210, "email": "aldo@temponovo.cl"},
+    {"name": "ALDO CAYAZZO",         "odoo_id": 5210, "email": "aldocayazzo@hotmail.com"},
     {"name": "ALEJANDRO STARK",      "odoo_id": 5211, "email": "alejandro@temponovo.cl"},
     {"name": "FRANCISCO BERCZELLER", "odoo_id": 5213, "email": ""},
     {"name": "FRANCISCO CORNEJO",    "odoo_id": 5214, "email": "francisco.cornejo@temponovo.cl"},
