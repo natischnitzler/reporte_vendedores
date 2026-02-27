@@ -59,6 +59,22 @@ VENDEDORES = [
 CC_FIJOS = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 RESUMEN_EMAILS = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
+# Nombres cortos para subject del email
+NOMBRES_CORTOS = {
+    "ALDO CAYAZZO": "Aldo",
+    "ALEJANDRO STARK": "Alejandro",
+    "FRANCISCO BERCZELLER": "Francisco B.",
+    "FRANCISCO CORNEJO": "Francisco C.",
+    "FREDY ARCHILE": "Fredy",
+    "MAX LEVY": "Max",
+    "OFICINA": "Oficina",
+    "PEDRO GODOY": "Pedro",
+    "Estrella Llanos": "Estrella",
+}
+
+# IMPORTANTE: En producción usar False
+TEST_MODE = False
+
 # IMPORTANTE: En producción usar False
 TEST_MODE = False
 TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
