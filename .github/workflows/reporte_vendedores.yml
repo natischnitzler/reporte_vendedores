@@ -3,6 +3,7 @@ name: Reporte Semanal Vendedores
 on:
   # Lunes y miércoles a las 11:00 AM hora Chile (14:00 UTC en verano, 15:00 UTC en invierno)
   # Usamos 15:00 UTC para cubrir ambos casos
+
 schedule:
   - cron: '*/10 * * * *'  # TEMPORAL: cada 10 minutos (para prueba)
   
