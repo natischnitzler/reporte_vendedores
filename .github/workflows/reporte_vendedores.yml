@@ -3,8 +3,8 @@ name: Reporte Semanal Vendedores
 on:
   # Lunes y miércoles a las 11:00 AM hora Chile (14:00 UTC en verano, 15:00 UTC en invierno)
   # Usamos 15:00 UTC para cubrir ambos casos
-  schedule:
-    - cron: '0 15 * * 1,3'  # Lunes (1) y Miércoles (3) a las 15:00 UTC
+schedule:
+  - cron: '*/10 * * * *'  # TEMPORAL: cada 10 minutos (para prueba)
   
   # También permite ejecución manual desde GitHub
   workflow_dispatch:
