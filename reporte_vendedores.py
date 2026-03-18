@@ -54,7 +54,7 @@ VENDEDORES = [
     {"name": "ALDO CAYAZZO",         "email": "aldocayazzo@hotmail.com",                "id": 5210},
     {"name": "ALEJANDRO STARK",      "email": "starksolla@gmail.com",             "id": 5211},
     {"name": "FRANCISCO BERCZELLER", "email": None,                               "id": 5213},
-    {"name": "FRANCISCO CORNEJO", "email": "tatocornejo@yahoo.es", "email2": "tatocornejo1692@gmail.com", "id": 5214},
+    {"name": "FRANCISCO CORNEJO", "email": "tatocornejo@yahoo.es", "email2": "tatocornejo1962@gmail.com", "id": 5214},
     {"name": "FREDY ARCHILE",        "email": "fredy@temponovo.cl",              "id": 5216},
     {"name": "MAX LEVY",             "email": "levy.max@gmail.com",               "id": 5217},
     {"name": "OFICINA",              "email": "estrellallanos@temponovo.cl",      "id": 5218},
