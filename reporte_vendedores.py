@@ -904,6 +904,15 @@ df_cobr_raw = (
 )
 df_cobr_raw = df_cobr_raw[df_cobr_raw["Saldo"] > 0].copy()
 
+# DEBUG RAMON ARENAS
+ramon_debug = df_cobr_raw[df_cobr_raw["Cliente"].str.contains("RAMON ARENAS", na=False, case=False)]
+if not ramon_debug.empty:
+    print("\n🔍 DEBUG RAMON ARENAS en df_cobr_raw:")
+    print(ramon_debug[["Cliente", "Factura", "Doc_label", "Bucket", "Saldo", "Vendedor"]].to_string())
+    print(f"\nTotal Saldo RAMON: ${ramon_debug['Saldo'].sum():,.0f}")
+    print(f"Documentos únicos: {ramon_debug['Factura'].nunique()}")
+    print()
+
 # Mostrar ciudades sin zona para ajustar
 sin_zona = df_cobr_raw[df_cobr_raw["Zona_idx"]==3]["Ciudad"].value_counts()
 if not sin_zona.empty:
