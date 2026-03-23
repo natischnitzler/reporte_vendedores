@@ -82,8 +82,8 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
-TEST_TO   = ["natalia@temponovo.cl"]
+TEST_MODE = True
+TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
@@ -906,7 +906,8 @@ df_cobr_raw = (
         as_index=False
     ).agg(Saldo=("Saldo","sum"), Saldo_asiento=("Saldo_asiento","first"))
 )
-df_cobr_raw = df_cobr_raw[df_cobr_raw["Saldo"] > 0].copy()
+# Filtrar solo asientos con saldo pendiente (pero mantener todas las líneas del asiento para el PDF)
+df_cobr_raw = df_cobr_raw[df_cobr_raw["Saldo_asiento"] > 0].copy()
 
 # Mostrar ciudades sin zona para ajustar
 sin_zona = df_cobr_raw[df_cobr_raw["Zona_idx"]==3]["Ciudad"].value_counts()
@@ -1097,11 +1098,17 @@ else:
         return buf.getvalue()
 
     # ── 9) Generar un PDF por vendedor ─────────────────────
+    # Filtrar df_cobr_raw para incluir solo clientes con saldo pendiente (que están en df_cobranza)
+    clientes_con_saldo = set(df_cobranza[["Vendedor", "Cliente"]].apply(tuple, axis=1))
+    df_cobr_raw_filtrado = df_cobr_raw[
+        df_cobr_raw[["Vendedor", "Cliente"]].apply(tuple, axis=1).isin(clientes_con_saldo)
+    ].copy()
+    
     pdfs_cobranza = {}
     for v in VENDEDORES:
         nombre   = v["name"]
         df_v_res = df_cobranza[df_cobranza["Vendedor"].str.strip()==nombre.strip()].copy()
-        df_v_raw = df_cobr_raw[df_cobr_raw["Vendedor"].str.strip()==nombre.strip()].copy()
+        df_v_raw = df_cobr_raw_filtrado[df_cobr_raw_filtrado["Vendedor"].str.strip()==nombre.strip()].copy()
         if df_v_res.empty:
             continue
         try:
@@ -1113,9 +1120,9 @@ else:
     # ── PDF GENERAL: todos los vendedores juntos ──────────────
     try:
         pdf_general = build_pdf_cobranza(
-            df_cobranza,       # resumen completo
-            df_cobr_raw,       # raw completo
-            "Cobranza General" # título
+            df_cobranza,           # resumen completo (solo con saldo > 0)
+            df_cobr_raw_filtrado,  # raw filtrado (solo clientes con saldo > 0)
+            "Cobranza General"     # título
         )
         print(f"  ✅ PDF general → {len(pdf_general):,} bytes")
     except Exception as e:
