@@ -855,6 +855,11 @@ for line in aml_list:
     # Saldo del asiento completo (para el resumen pivot)
     saldo_asiento = float(move.get("amount_residual") or 0)
     
+    # Si el saldo del asiento es negativo, significa que LE DEBEMOS al cliente (no nos debe)
+    # Excluir estos casos completamente
+    if saldo_asiento < 0:
+        continue
+    
     dias = int((hoy_dt - fecha_venc).days) if pd.notna(fecha_venc) else 0
 
     # Excluir cheques en cartera (ya entregados por el cliente)
