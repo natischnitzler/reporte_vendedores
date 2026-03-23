@@ -82,7 +82,7 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
+TEST_MODE = True
 TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
@@ -932,14 +932,16 @@ else:
         if col not in pivot.columns:
             pivot[col] = 0
 
-    pivot["Total"] = pivot[["A_la_fecha","d_1_30","d_31_60",
-                             "d_61_90","d_91_120","Antiguos"]].sum(axis=1)
-    pivot = pivot[pivot["Total"] > 0].copy()
+    # Renombrar primero
     pivot = pivot.rename(columns={
         "A_la_fecha":"A la fecha","d_1_30":"1-30",
         "d_31_60":"31-60","d_61_90":"61-90","d_91_120":"91-120"
     })
+    # Crear columna >30 (consolidada)
     pivot[">30"] = pivot[["31-60","61-90","91-120","Antiguos"]].sum(axis=1)
+    # Total = suma de las columnas QUE SE MUESTRAN (no las intermedias)
+    pivot["Total"] = pivot[["A la fecha","1-30",">30"]].sum(axis=1)
+    pivot = pivot[pivot["Total"] > 0].copy()
     pivot = pivot.merge(meta_cli, on=["Vendedor","Cliente"], how="left")
     pivot["Ciudad"]   = pivot["Ciudad"].fillna("")
     pivot["Zona_idx"] = pivot["Zona_idx"].fillna(3).astype(int)
@@ -1114,6 +1116,22 @@ else:
     except Exception as e:
         pdf_general = None
         print(f"  ⚠️  PDF general: {e}")
+    
+    # ── PDF MARÍA ELENA: ordenado por vendedor ────────────────
+    try:
+        # Ordenar por vendedor primero, luego zona dentro de cada vendedor
+        df_cobr_maria = df_cobranza.sort_values(
+            ["Vendedor", "Zona_idx", "Ciudad", "Cliente"]
+        ).copy()
+        pdf_maria_elena = build_pdf_cobranza(
+            df_cobr_maria,
+            df_cobr_raw,
+            "Cobranza por Vendedor"
+        )
+        print(f"  ✅ PDF María Elena → {len(pdf_maria_elena):,} bytes")
+    except Exception as e:
+        pdf_maria_elena = None
+        print(f"  ⚠️  PDF María Elena: {e}")
 
 print(f"\n✅ df_cobranza: {len(df_cobranza)} clientes")
 print(f"✅ PDFs individuales: {len(pdfs_cobranza)}")
@@ -1353,6 +1371,88 @@ print(html_lo_que_viene)
 
 # ── bloque-h-resumen ──────────────────────────────────────────────────
 RESUMEN_EMAILS = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
+
+# Email especial cobranza para María Elena
+MARIA_ELENA_EMAIL = "mariaelena@temponovo.cl"  # Cambiar por el email real
+
+def build_email_maria_elena(df_cobranza, df_cobr_raw, start, end):
+    """
+    Email especial para María Elena - SOLO cobranza
+    Top 30 clientes más graves ordenados por monto >30
+    """
+    rango = f"{start.strftime('%d-%m-%Y')} al {(end-pd.Timedelta(seconds=1)).strftime('%d-%m-%Y')}"
+    
+    # Top 30 más graves
+    top30 = (
+        df_cobranza[df_cobranza[">30"] > 0]
+        .copy()
+        .assign(
+            dias_max = df_cobranza[df_cobranza[">30"] > 0]["Cliente"].map(
+                df_cobr_raw[df_cobr_raw["Bucket"].isin(
+                    ["d_31_60","d_61_90","d_91_120","Antiguos"])]
+                .groupby("Cliente")["Dias_vencido"].max()
+            )
+        )
+        .sort_values([">30","dias_max"], ascending=[False, False])
+        .head(30)
+    )
+    
+    # Totales
+    total_v30 = float(df_cobranza[">30"].sum())
+    total_all = float(df_cobranza["Total"].sum())
+    
+    def fmt_cell(v, rojo=False):
+        v = float(v) if v is not None else 0.0
+        if v == 0: return "<td style='text-align:right;color:#ccc'>–</td>"
+        st = "color:#c0392b;font-weight:bold" if rojo else ""
+        return f"<td style='text-align:right;{st}'>$ {format_clp(v)}</td>"
+    
+    rows = ""
+    for _, r in top30.iterrows():
+        dias = int(r["dias_max"]) if pd.notna(r.get("dias_max", float("nan"))) else 0
+        badge = (f"<span style='background:#c0392b;color:white;border-radius:3px;"
+                 f"padding:1px 5px;font-size:11px'>{dias}d</span> "
+                 if dias > 0 else "")
+        rows += (
+            f"<tr>"
+            f"<td>{badge}{r['Cliente']}"
+            f"<br><small style='color:#888'>{r['Vendedor']} · {r['Ciudad']}</small></td>"
+            + fmt_cell(float(r["A la fecha"]))
+            + fmt_cell(float(r["1-30"]))
+            + fmt_cell(float(r[">30"]), rojo=True)
+            + fmt_cell(float(r["Total"]))
+            + "</tr>"
+        )
+    
+    subject = f"🚨 Alerta Cobranza — Top 30 más graves | {rango}"
+    html = f"""
+    <html><head>{BASE_CSS}</head><body><div class="wrap">
+      <h2>🚨 Alerta de Cobranza</h2>
+      <p>Semana <b>{rango}</b></p>
+      
+      <h3>💰 Top 30 clientes más graves</h3>
+      <div class="kpi" style="border-color:#c0392b">
+        Total pendiente empresa: <b>$ {format_clp(total_all)}</b>
+        &nbsp;·&nbsp; Vencido >30: <b style="color:#c0392b">$ {format_clp(total_v30)}</b>
+      </div>
+      <table><thead><tr>
+        <th>Cliente · Vendedor · Ciudad</th>
+        <th style='text-align:right'>A la fecha</th>
+        <th style='text-align:right'>1-30</th>
+        <th style='text-align:right'>Vencido >30</th>
+        <th style='text-align:right'>Total</th>
+      </tr></thead>
+      <tbody>{rows}</tbody></table>
+      <p style='font-size:11px;color:#888'>
+        El número en rojo indica días de antigüedad máxima del vencimiento.
+        Ver PDF adjunto con detalle completo ordenado por vendedor.
+      </p>
+      
+      <p class="footer">Reporte generado automáticamente desde Odoo.</p>
+    </div></body></html>
+    """
+    
+    return {"subject": subject, "html": html}
 
 def build_email_resumen(df_ventas, df_cobranza, df_cobr_raw,
                         df_diferencias, start, end, html_lo_que_viene):
@@ -1851,6 +1951,29 @@ try:
     print(f"[{modo}] Resumen ejecutivo → {to_res}  (adjunto: {len(attachments_res)} archivos)")
 except Exception as e:
     print(f"⚠️  Error enviando resumen: {e}")
+
+# ── Email especial para María Elena (solo cobranza) ────────
+try:
+    info_me = build_email_maria_elena(df_cobranza, df_cobr_raw, start, end)
+    
+    if TEST_MODE:
+        to_me = TEST_TO[0] if isinstance(TEST_TO, list) else TEST_TO
+    else:
+        to_me = MARIA_ELENA_EMAIL
+    
+    # Adjunto: PDF ordenado por vendedor
+    attachments_me = []
+    if pdf_maria_elena:
+        attachments_me.append({
+            "data":     pdf_maria_elena,
+            "filename": f"cobranza_por_vendedor_{pd.Timestamp.now().strftime('%Y-%m-%d')}.pdf"
+        })
+    
+    send_email(to_me, [], info_me["subject"], info_me["html"], attachments_me)
+    modo = "PRUEBA" if TEST_MODE else "REAL"
+    print(f"[{modo}] Email María Elena → {to_me}  (PDF: {len(attachments_me)} archivo)")
+except Exception as e:
+    print(f"⚠️  Error enviando email María Elena: {e}")
 
 
 # ══════════════════════════════════════════════════════════════
