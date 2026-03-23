@@ -83,7 +83,7 @@ TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
 TEST_MODE = True
-TEST_TO   = ["natalia@temponovo.cl"]
+TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
@@ -903,8 +903,11 @@ df_cobr_raw = (
     ).agg(Saldo=("Saldo","sum"), Saldo_asiento=("Saldo_asiento","first"))
 )
 
-# Calcular balance TOTAL por cliente (sumando todos sus asientos)
-balance_cliente = df_cobr_raw.groupby("Cliente")["Saldo_asiento"].sum()
+# Calcular balance TOTAL por cliente
+# IMPORTANTE: Agrupar por Move_name primero para no duplicar el amount_residual
+# del asiento cuando tiene múltiples líneas (ej: cuotas)
+balance_por_asiento = df_cobr_raw.groupby(["Cliente", "Move_name"])["Saldo_asiento"].first()
+balance_cliente = balance_por_asiento.groupby("Cliente").sum()
 
 # DEBUG: Mostrar clientes con balance negativo o cero
 clientes_excluidos = balance_cliente[balance_cliente <= 0]
