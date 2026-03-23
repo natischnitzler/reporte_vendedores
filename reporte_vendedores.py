@@ -82,8 +82,8 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
-TEST_TO   = ["natalia@temponovo.cl"]
+TEST_MODE = True
+TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
@@ -938,37 +938,33 @@ df_cobr_raw = (
     ).agg(Saldo=("Saldo","sum"), Saldo_asiento=("Saldo_asiento","first"))
 )
 
-# Calcular balance TOTAL por cliente
-# IMPORTANTE: Agrupar por Move_name primero para no duplicar el amount_residual
-# del asiento cuando tiene múltiples líneas (ej: cuotas)
-balance_por_asiento = df_cobr_raw.groupby(["Cliente", "Move_name"])["Saldo_asiento"].first()
-balance_cliente = balance_por_asiento.groupby("Cliente").sum()
+# ── NUEVO: Leer balance REAL de cada partner desde res.partner ─────
+print("Leyendo balance real de partners...")
+partner_ids_unicos = df_cobr_raw["Cliente"].unique()
 
-# DEBUG: Mostrar clientes con balance negativo o cero
-clientes_excluidos = balance_cliente[balance_cliente <= 0]
-if not clientes_excluidos.empty:
-    print("\n🔍 Clientes con balance ≤ 0 (excluidos):")
-    for cliente, balance in clientes_excluidos.items():
-        print(f"  {cliente}: ${balance:,.0f}")
-    print()
+# Buscar IDs de partners por nombre
+partners_balance = models.execute_kw(
+    ODOO3_DB, uid, ODOO3_PASS,
+    "res.partner", "search_read",
+    [[("name", "in", list(partner_ids_unicos))]],
+    {"fields": ["id", "name", "debit", "credit"]}
+)
 
-# DEBUG JULIO específicamente
-if "JULIO" in " ".join(balance_cliente.index):
-    julio_clientes = [c for c in balance_cliente.index if "JULIO" in c.upper()]
-    print("\n🔍 DEBUG JULIO SILVA:")
-    for c in julio_clientes:
-        print(f"  Cliente: {c}")
-        print(f"  Balance total: ${balance_cliente[c]:,.0f}")
-        julio_rows = df_cobr_raw[df_cobr_raw["Cliente"] == c]
-        print(f"  Asientos: {julio_rows['Move_name'].nunique()}")
-        print(f"  Saldo_asiento por asiento:")
-        for _, row in julio_rows.iterrows():
-            print(f"    {row['Move_name']}: ${row['Saldo_asiento']:,.0f}")
-    print()
+# Calcular balance real = debit - credit (debit es lo que nos deben)
+partner_balance_map = {}
+for p in partners_balance:
+    balance = float(p.get("debit", 0)) - float(p.get("credit", 0))
+    partner_balance_map[p["name"]] = balance
 
-# Excluir clientes con balance total negativo o cero (les debemos o están saldados)
-clientes_positivos = balance_cliente[balance_cliente > 0].index
-df_cobr_raw = df_cobr_raw[df_cobr_raw["Cliente"].isin(clientes_positivos)].copy()
+print(f"Balance real leído para {len(partner_balance_map)} partners")
+
+# Filtrar clientes con balance real > 0
+clientes_con_balance_positivo = [
+    cliente for cliente, balance in partner_balance_map.items()
+    if balance > 0
+]
+
+df_cobr_raw = df_cobr_raw[df_cobr_raw["Cliente"].isin(clientes_con_balance_positivo)].copy()
 
 # Mostrar ciudades sin zona para ajustar
 sin_zona = df_cobr_raw[df_cobr_raw["Zona_idx"]==3]["Ciudad"].value_counts()
@@ -1007,7 +1003,8 @@ else:
     # Crear columna >30 (consolidada)
     pivot[">30"] = pivot[["31-60","61-90","91-120","Antiguos"]].sum(axis=1)
     # Total = suma de las columnas QUE SE MUESTRAN
-    pivot["Total"] = pivot[["A la fecha","1-30",">30"]].sum(axis=1)
+    # Total = Balance REAL del partner (no suma de buckets)
+    pivot["Total"] = pivot["Cliente"].map(partner_balance_map).fillna(0)
     pivot = pivot[pivot["Total"] > 0].copy()
     pivot = pivot.merge(meta_cli, on=["Vendedor","Cliente"], how="left")
     pivot["Ciudad"]   = pivot["Ciudad"].fillna("")
