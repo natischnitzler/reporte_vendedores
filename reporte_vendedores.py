@@ -1662,7 +1662,7 @@ print("✅ build_email_resumen lista")
 
 
 # ── bloque-f-build ──────────────────────────────────────────────────
-def build_email_vendedor(vendedor, dv, df_pendientes, df_cobranza, start, end, html_lo_que_viene):
+def build_email_vendedor(vendedor, dv, df_pendientes, df_cobranza, df_cobr_raw, start, end, html_lo_que_viene):
     nombre     = NOMBRES_CORTOS.get(vendedor, vendedor.title())
     n_ventas   = int(dv["Numero"].nunique())
     n_clientes = int(dv["Cliente"].nunique())
@@ -1708,10 +1708,34 @@ def build_email_vendedor(vendedor, dv, df_pendientes, df_cobranza, start, end, h
           {df_to_html_table(tbl_pend)}"""
 
     # ── Cobranza vencida en el email ────────────────────────
+    # Usar df_cobr_raw (mismo que el PDF) para garantizar totales correctos
     cobr_html = ""
-    if not df_cobranza.empty:
-        cobr_v = df_cobranza[df_cobranza["Vendedor"].str.strip()==vendedor.strip()]                   .drop(columns=["Vendedor"]).copy()
-        if not cobr_v.empty:
+    if not df_cobr_raw.empty:
+        # Filtrar por vendedor
+        cobr_raw_v = df_cobr_raw[df_cobr_raw["Vendedor"].str.strip()==vendedor.strip()].copy()
+        
+        if not cobr_raw_v.empty:
+            # Agrupar igual que el PDF: por cliente y bucket
+            cobr_pivot_v = cobr_raw_v.pivot_table(
+                index="Cliente", columns="Bucket",
+                values="Saldo", aggfunc="sum", fill_value=0
+            ).reset_index()
+            
+            # Asegurar que existen todas las columnas
+            for col in ["A_la_fecha","d_1_30","d_31_60","d_61_90","d_91_120","Antiguos"]:
+                if col not in cobr_pivot_v.columns:
+                    cobr_pivot_v[col] = 0
+            
+            # Renombrar y crear >30
+            cobr_pivot_v = cobr_pivot_v.rename(columns={
+                "A_la_fecha":"A la fecha","d_1_30":"1-30"
+            })
+            cobr_pivot_v[">30"] = cobr_pivot_v[["d_31_60","d_61_90","d_91_120","Antiguos"]].sum(axis=1)
+            cobr_pivot_v["Total"] = cobr_pivot_v[["A la fecha","1-30",">30"]].sum(axis=1)
+            
+            # Filtrar clientes con saldo > 0
+            cobr_v = cobr_pivot_v[cobr_pivot_v["Total"] > 0][["Cliente","A la fecha","1-30",">30","Total"]].copy()
+            
             COLS_COBR = ["Cliente","A la fecha","1-30",">30","Total"]
             COLS_VENC = [">30"]
 
@@ -1853,7 +1877,7 @@ for v in VENDEDORES:
         continue
 
     # Construir email
-    info = build_email_vendedor(vendedor, dv, df_pendientes, df_cobranza, start, end, html_lo_que_viene)
+    info = build_email_vendedor(vendedor, dv, df_pendientes, df_cobranza, df_cobr_raw, start, end, html_lo_que_viene)
 
     # Destinatarios
     if TEST_MODE:
