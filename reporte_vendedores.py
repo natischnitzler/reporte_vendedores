@@ -588,24 +588,45 @@ if not receivable_ids:
 print(f"Cuentas por cobrar encontradas: {len(receivable_ids)}")
 if receivable_ids:
     # Mostrar nombres para confirmar que son las correctas
-    acc_names = models.execute_kw(
+    acc_data = models.execute_kw(
         ODOO3_DB, uid, ODOO3_PASS,
         "account.account", "read",
-        [receivable_ids], {"fields": ["code", "name"]}
+        [receivable_ids], {"fields": ["id", "code", "name"]}
     )
-    for a in acc_names[:5]:
+    for a in acc_data[:5]:
         print(f"   {a['code']}  {a['name']}")
+    
+    # Crear mapa de cuentas (necesario para identificar cheques de terceros)
+    account_map = {a["id"]: {"code": a["code"], "name": a["name"]} for a in acc_data}
+    
+    # Agregar cuenta de cheques de terceros (110126)
+    try:
+        cheques_ids = models.execute_kw(
+            ODOO3_DB, uid, ODOO3_PASS,
+            "account.account", "search",
+            [[("code", "=like", "110126%")]],
+            {"limit": 10}
+        )
+        if cheques_ids:
+            cheques_data = models.execute_kw(
+                ODOO3_DB, uid, ODOO3_PASS,
+                "account.account", "read",
+                [cheques_ids], {"fields": ["id", "code", "name"]}
+            )
+            for c in cheques_data:
+                account_map[c["id"]] = {"code": c["code"], "name": c["name"]}
+                print(f"   {c['code']}  {c['name']} (cheques)")
+    except Exception:
+        pass
 else:
     raise RuntimeError("No se encontraron cuentas por cobrar. Revisar plan de cuentas.")
 
 # ── 1b) Líneas no reconciliadas de esas cuentas ────────────
-# Para capturar tanto facturas (FAC) como asientos de apertura (APER)
-# no filtramos por amount_residual > 0 en el search (ese campo
-# en account.move.line se comporta diferente según move_type).
-# En cambio traemos todas las líneas no reconciliadas y filtramos
-# por debit > 0 (líneas de cargo al cliente) en Python.
+# Incluir también cuenta 110126 (cheques de terceros entregados por clientes)
+all_account_ids = list(account_map.keys())
+
 aml_domain = [
-    ("account_id",        "in",  receivable_ids),
+    ("account_id",        "in",  all_account_ids),
     ("move_id.state",     "=",   "posted"),
     ("partner_id",        "!=",  False),
     ("full_reconcile_id", "=",   False),   # no totalmente conciliada
@@ -625,7 +646,7 @@ if aml_ids:
         [aml_ids],
         {"fields": ["move_id", "partner_id", "date_maturity",
                     "date", "debit", "credit", "amount_residual",
-                    "full_reconcile_id", "name"]}
+                    "full_reconcile_id", "name", "account_id"]}
     )
     # Filtrar: solo líneas NO totalmente conciliadas
     # Incluir tanto deudas (amount_residual > 0) como pagos (amount_residual < 0)
@@ -848,8 +869,22 @@ for line in aml_list:
     # Saldo de la línea individual (puede ser positivo=deuda o negativo=pago)
     saldo_linea = float(line.get("amount_residual") or 0)
     
-    # Saldo del asiento completo (para el resumen pivot)
-    saldo_asiento = float(move.get("amount_residual") or 0)
+    # Identificar cuenta
+    account_id = m2o_id(line.get("account_id"))
+    account_code = ""
+    if account_id and account_id in account_map:
+        account_code = account_map[account_id].get("code", "")
+    
+    # Si es cuenta "110126 CHEQUES DE TERCEROS", es un cheque entregado por el cliente
+    # Debe restar del balance aunque no esté cobrado aún
+    if account_code.startswith("110126"):
+        # Cheque entregado: debit es el monto del cheque (positivo)
+        # Lo convertimos a negativo para que reste del balance
+        cheque_monto = float(line.get("debit") or 0) - float(line.get("credit") or 0)
+        saldo_asiento = -abs(cheque_monto)  # Siempre negativo (pago)
+    else:
+        # Saldo del asiento completo (para el resumen pivot)
+        saldo_asiento = float(move.get("amount_residual") or 0)
     
     dias = int((hoy_dt - fecha_venc).days) if pd.notna(fecha_venc) else 0
 
