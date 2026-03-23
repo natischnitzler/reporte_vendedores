@@ -647,7 +647,7 @@ if move_ids_d:
         "account.move", "read",
         [move_ids_d],
         {"fields": ["id", "name", "ref", "invoice_user_id", "move_type",
-                    "invoice_date", "invoice_date_due"]}
+                    "invoice_date", "invoice_date_due", "amount_residual"]}
     )
     move_map = {m["id"]: m for m in moves}
 
@@ -847,11 +847,14 @@ for line in aml_list:
     fecha_doc = (move.get("invoice_date") or move.get("date") or
                  line.get("date") or "")
 
-    # Saldo: usar SIEMPRE amount_residual — es el saldo real post-pagos
-    # ya descuenta pagos parciales, notas de crédito y conciliaciones
-    saldo = float(line.get("amount_residual") or 0)
-    if saldo <= 0:
+    # Saldo de la línea individual (para el detalle del PDF)
+    saldo_linea = float(line.get("amount_residual") or 0)
+    if saldo_linea <= 0:
         continue   # ignorar líneas ya pagadas o con saldo negativo
+    
+    # Saldo del asiento completo (para el resumen pivot)
+    saldo_asiento = float(move.get("amount_residual") or 0)
+    
     dias = int((hoy_dt - fecha_venc).days) if pd.notna(fecha_venc) else 0
 
     # Excluir cheques en cartera (ya entregados por el cliente)
@@ -890,7 +893,8 @@ for line in aml_list:
         "Fecha_venc":    fecha_venc,
         "Dias_vencido":  dias,
         "Bucket":        bucket(dias),
-        "Saldo":         saldo,
+        "Saldo":         saldo_linea,        # para el PDF (detalle)
+        "Saldo_asiento": saldo_asiento,      # para el pivot (resumen)
     })
 
 df_cobr_raw = pd.DataFrame(rows_d)
@@ -916,7 +920,8 @@ if df_cobr_raw.empty:
     df_cobranza   = pd.DataFrame()
     pdfs_cobranza = {}
 else:
-    # ── 7) Pivot resumen ───────────────────────────────────
+    # ── 7) Pivot resumen (para email/tabla) ───────────────────────
+    # Usa Saldo_asiento que es el residual del asiento padre (correcto)
     meta_cli = df_cobr_raw.groupby(["Vendedor","Cliente"]).agg(
         Ciudad  =("Ciudad",   "first"),
         Zona_idx=("Zona_idx", "first"),
@@ -925,7 +930,7 @@ else:
 
     pivot = df_cobr_raw.pivot_table(
         index=["Vendedor","Cliente"], columns="Bucket",
-        values="Saldo", aggfunc="sum", fill_value=0
+        values="Saldo_asiento", aggfunc="sum", fill_value=0
     ).reset_index()
 
     for col in ["A_la_fecha","d_1_30","d_31_60","d_61_90","d_91_120","Antiguos"]:
