@@ -82,8 +82,8 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
-TEST_TO   = ["natalia@temponovo.cl"]
+TEST_MODE = True
+TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
@@ -911,8 +911,13 @@ df_cobr_raw = (
         as_index=False
     ).agg(Saldo=("Saldo","sum"), Saldo_asiento=("Saldo_asiento","first"))
 )
-# Filtrar solo asientos con saldo pendiente (pero mantener todas las líneas del asiento para el PDF)
-df_cobr_raw = df_cobr_raw[df_cobr_raw["Saldo_asiento"] > 0].copy()
+
+# Calcular balance TOTAL por cliente (sumando todos sus asientos)
+balance_cliente = df_cobr_raw.groupby("Cliente")["Saldo_asiento"].sum()
+
+# Excluir clientes con balance total negativo (les debemos)
+clientes_positivos = balance_cliente[balance_cliente > 0].index
+df_cobr_raw = df_cobr_raw[df_cobr_raw["Cliente"].isin(clientes_positivos)].copy()
 
 # Mostrar ciudades sin zona para ajustar
 sin_zona = df_cobr_raw[df_cobr_raw["Zona_idx"]==3]["Ciudad"].value_counts()
