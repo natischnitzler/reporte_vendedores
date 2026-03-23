@@ -79,11 +79,11 @@ NOMBRES_CORTOS = {
 }
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
+TEST_MODE = True
 
 # IMPORTANTE: En producción usar False
 TEST_MODE = True
-TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
+TEST_TO   = ["natalia@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
