@@ -82,8 +82,8 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
-TEST_TO   = ["natalia@temponovo.cl"]
+TEST_MODE = True
+TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
@@ -915,7 +915,29 @@ df_cobr_raw = (
 # Calcular balance TOTAL por cliente (sumando todos sus asientos)
 balance_cliente = df_cobr_raw.groupby("Cliente")["Saldo_asiento"].sum()
 
-# Excluir clientes con balance total negativo (les debemos)
+# DEBUG: Mostrar clientes con balance negativo o cero
+clientes_excluidos = balance_cliente[balance_cliente <= 0]
+if not clientes_excluidos.empty:
+    print("\n🔍 Clientes con balance ≤ 0 (excluidos):")
+    for cliente, balance in clientes_excluidos.items():
+        print(f"  {cliente}: ${balance:,.0f}")
+    print()
+
+# DEBUG JULIO específicamente
+if "JULIO" in " ".join(balance_cliente.index):
+    julio_clientes = [c for c in balance_cliente.index if "JULIO" in c.upper()]
+    print("\n🔍 DEBUG JULIO SILVA:")
+    for c in julio_clientes:
+        print(f"  Cliente: {c}")
+        print(f"  Balance total: ${balance_cliente[c]:,.0f}")
+        julio_rows = df_cobr_raw[df_cobr_raw["Cliente"] == c]
+        print(f"  Asientos: {julio_rows['Move_name'].nunique()}")
+        print(f"  Saldo_asiento por asiento:")
+        for _, row in julio_rows.iterrows():
+            print(f"    {row['Move_name']}: ${row['Saldo_asiento']:,.0f}")
+    print()
+
+# Excluir clientes con balance total negativo o cero (les debemos o están saldados)
 clientes_positivos = balance_cliente[balance_cliente > 0].index
 df_cobr_raw = df_cobr_raw[df_cobr_raw["Cliente"].isin(clientes_positivos)].copy()
 
