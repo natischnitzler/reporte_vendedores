@@ -82,8 +82,8 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = True
-TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
+TEST_MODE = False
+TEST_TO   = ["natalia@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
