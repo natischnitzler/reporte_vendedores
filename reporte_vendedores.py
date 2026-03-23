@@ -627,16 +627,14 @@ if aml_ids:
                     "date", "debit", "credit", "amount_residual",
                     "full_reconcile_id", "name"]}
     )
-    # Filtrar: solo líneas con saldo real pendiente
-    # debit > credit significa que el cliente nos debe
-    # full_reconcile_id = False significa no totalmente conciliada
+    # Filtrar: solo líneas NO totalmente conciliadas
+    # Incluir tanto deudas (amount_residual > 0) como pagos (amount_residual < 0)
+    # para poder calcular el balance correcto por cliente
     aml_list = [
         l for l in aml_list
-        if not l.get("full_reconcile_id")                          # no conciliada totalmente
-        and (float(l.get("amount_residual") or 0) > 0             # tiene saldo
-             or float(l.get("debit") or 0) > float(l.get("credit") or 0))  # o debit > credit
+        if not l.get("full_reconcile_id")  # no conciliada totalmente
     ]
-    print(f"Líneas por cobrar con saldo: {len(aml_list)}")
+    print(f"Líneas por cobrar (incluye pagos): {len(aml_list)}")
 
 # ── 2) Prefetch datos del asiento (nombre, vendedor) ───────
 move_ids_d = list({m2o_id(l.get("move_id")) for l in aml_list if m2o_id(l.get("move_id"))})
@@ -847,18 +845,11 @@ for line in aml_list:
     fecha_doc = (move.get("invoice_date") or move.get("date") or
                  line.get("date") or "")
 
-    # Saldo de la línea individual (para el detalle del PDF)
+    # Saldo de la línea individual (puede ser positivo=deuda o negativo=pago)
     saldo_linea = float(line.get("amount_residual") or 0)
-    if saldo_linea <= 0:
-        continue   # ignorar líneas ya pagadas o con saldo negativo
     
     # Saldo del asiento completo (para el resumen pivot)
     saldo_asiento = float(move.get("amount_residual") or 0)
-    
-    # Si el saldo del asiento es negativo, significa que LE DEBEMOS al cliente (no nos debe)
-    # Excluir estos casos completamente
-    if saldo_asiento < 0:
-        continue
     
     dias = int((hoy_dt - fecha_venc).days) if pd.notna(fecha_venc) else 0
 
