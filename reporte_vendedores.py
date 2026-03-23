@@ -82,8 +82,8 @@ NOMBRES_CORTOS = {
 TEST_MODE = False
 
 # IMPORTANTE: En producción usar False
-TEST_MODE = False
-TEST_TO   = ["natalia@temponovo.cl"]
+TEST_MODE = True
+TEST_TO   = ["natalia@temponovo.cl", "daniel@temponovo.cl"]
 
 # ── bloque-1b-helpers ──────────────────────────────────────────────────
 # ── Helpers many2one ──────────────────────────
@@ -904,7 +904,7 @@ df_cobr_raw = (
         ["Factura","Doc_label","Move_name","Cliente","Ciudad","Zona_idx","Zona_ord",
          "Vendedor","Fecha_factura","Fecha_venc","Dias_vencido","Bucket"],
         as_index=False
-    ).agg(Saldo=("Saldo","sum"))
+    ).agg(Saldo=("Saldo","sum"), Saldo_asiento=("Saldo_asiento","first"))
 )
 df_cobr_raw = df_cobr_raw[df_cobr_raw["Saldo"] > 0].copy()
 
