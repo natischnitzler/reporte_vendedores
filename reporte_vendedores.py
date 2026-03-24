@@ -60,7 +60,7 @@ SMTP_USER = "reportes@temponovo.cl"
 SMTP_PASS = "reportes123"
 
 # ── Modo prueba ───────────────────────────────
-TEST_MODE = True                      # ← cambiar a False para envío real
+TEST_MODE = False                  # ← cambiar a False para envío real
 TEST_TO = "natalia@temponovo.cl"
 
 # ── CC en modo real ───────────────────────────
