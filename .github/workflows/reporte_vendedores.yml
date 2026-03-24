@@ -1,23 +1,21 @@
 name: Reporte Semanal Vendedores
 
 on:
-  # Lunes y miércoles a las 11:00 AM hora Chile (14:00 UTC en verano, 15:00 UTC en invierno)
-  # Usamos 15:00 UTC para cubrir ambos casos
-
+  # Lunes, Miércoles y Viernes a las 12:00 UTC (9 AM Chile aprox)
   schedule:
-    - cron: '0 12 * * 1,3,5'# Lunes (1) y Miércoles (3) a las 15:00 UTC  
-  
-  # También permite ejecución manual desde GitHub
+    - cron: '0 12 * * 1,3,5'
+
+  # Permite ejecución manual desde GitHub
   workflow_dispatch:
 
 jobs:
   enviar-reportes:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -26,14 +24,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           pip install -r requirements.txt
-          pip install requests 
 
-      - name: Verificar imports
-        run: |
-          head -20 reporte_vendedores.py
-          echo "---"
-          grep -n "import requests" reporte_vendedores.py || echo "REQUESTS NO ENCONTRADO"
- 
       - name: Ejecutar reporte
         env:
           ODOO3_URL: ${{ secrets.ODOO3_URL }}
@@ -46,7 +37,7 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: |
           python reporte_vendedores.py
-      
+
       - name: Notificar resultado
         if: always()
         run: |
