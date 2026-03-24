@@ -7,9 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/18BYFdEZG1k55CFx0VxSs6JSLmMzi9lMf
 """
 
-!pip install reportlab --quiet
-print('✅ reportlab instalado')
-
 """# 📊 Reporte Semanal de Vendedores – Temponovo
 
 **Bloques:**
