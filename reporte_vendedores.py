@@ -73,8 +73,6 @@ CC_FIJOS = [
 NATALIA_EMAILS = [
     "natalia@temponovo.cl",
     "estrellallanos@temponovo.cl",
-    "ventas@temponovo.cl",
-    "pablo@temponovo.cl",
 ]
 
 # ── Email María Elena (solo cobranza) ───────────
